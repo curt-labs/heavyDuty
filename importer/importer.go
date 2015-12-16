@@ -1,7 +1,6 @@
 package importer
 
 import (
-	// "database/sql"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -31,11 +30,14 @@ type VehiclePart struct {
 }
 
 var (
-	path     = flag.String("path", "", "Path to csv")
-	yearMap  map[float64]int
-	makeMap  map[string]int
-	modelMap map[string]int
-	styleMap map[string]int
+	path           = flag.String("path", "", "Path to csv")
+	yearMap        map[float64]int
+	makeMap        map[string]int
+	modelMap       map[string]int
+	styleMap       map[string]int
+	vehicleMap     map[string]int
+	vehiclePartMap map[string]int
+	makeToModelMap map[string]string
 )
 
 func init() {
@@ -57,6 +59,16 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	vehicleMap, err = getVehicleMap()
+	if err != nil {
+		log.Fatal(err)
+	}
+	vehiclePartMap, err = getVehiclePartMap()
+	if err != nil {
+		log.Fatal(err)
+	}
+	makeToModelMap = make(map[string]string)
+
 	err = database.CreateNewTables()
 	if err != nil {
 		log.Fatal(err)
@@ -65,6 +77,7 @@ func init() {
 }
 
 func Get() error {
+	var counter int
 	flag.Parse()
 	f, err := os.Open(*path)
 	if err != nil {
@@ -76,7 +89,6 @@ func Get() error {
 	if err != nil {
 		return err
 	}
-	var vehicleParts []VehiclePart //all the vehicle parts that are about to happen
 	for i, line := range rawData {
 		if i == 0 {
 			continue
@@ -97,33 +109,41 @@ func Get() error {
 		if err != nil {
 			return err
 		}
-		vehicleParts = append(vehicleParts, vps...)
 
-		//insert each vehicleApp into MySqlDB
+		//range over vehicleApps from csv parsing
 		for i, _ := range vps {
-			err = vps[i].ToDB()
+			//create vehicleApps (with yearId, makeId, modelId, styleId)
+			err, skip := vps[i].Build()
 			if err != nil {
 				return err
 			}
 
+			//insert each vehicle & vehiclePart into MySqlDB
+			if skip {
+				continue
+			}
+			err = vps[i].insert()
+			if err != nil {
+				return err
+			}
 		}
 	}
-	log.Print(len(vehicleParts))
+	fmt.Println(counter, " vehicleParts examined")
 	//index (mongo-ize) all new parts
 
 	return nil
 }
 
+// Get Make from line or line above
+// Get Models from Models => array
+// Get styles part1 from styles part1 => array
+// Get Style from Style
+// Create styles array; append style to each stylePart1 array item
+// Get years from YearsFrom/To => array
+// Get parts from remaining cells (except notes)
+// Get Drilling notes; NOTE: Z or No Drill = No Drilling Required; Drill = Drilling Required
+// Loop years, loop models, loop styles, loop parts -s> make vehiclePart => array
 func parseLine(line []string) ([]VehiclePart, error) {
-	// Get Make from line or line above
-	// Get Models from Models => array
-	// Get styles part1 from styles part1 => array
-	// Get Style from Style
-	// Create styles array; append style to each stylePart1 array item
-	// Get years from YearsFrom/To => array
-	// Get parts from remaining cells (except notes)
-	// Get Drilling notes; NOTE: Z or No Drill = No Drilling Required; Drill = Drilling Required
-	// Loop years, loop models, loop styles, loop parts -s> make vehiclePart => array
 	var err error
 	var vps []VehiclePart
 
@@ -177,32 +197,11 @@ func parseLine(line []string) ([]VehiclePart, error) {
 
 	//vehiclePart
 	for _, model := range modelsArray {
-		//check make if more than one on the line (e.g. Chevrolet/GMC)
-		//TODO - this is totally trouble!!! - split makes eariler
-		var vehicleMake string
-		if len(makeArray) > 1 {
-			var enterChoice string
-			makeChoiceString := fmt.Sprintf("Is the %s a ", model)
-			for i, m := range makeArray {
-				makeChoiceString += m + " (" + strconv.Itoa(i+1) + ") "
-			}
-			makeChoiceString += "product? "
-			fmt.Printf(makeChoiceString)
-			if _, err := fmt.Scanf("%s", &enterChoice); err != nil {
-				return vps, err
-			}
-
-			choice, err := strconv.Atoi(enterChoice)
-			if err != nil {
-				//TODO - reenter or quit
-				return vps, err
-			}
-			vehicleMake = strings.ToLower(makeArray[choice-1]) //Capitalize
-		} else {
-			vehicleMake = strings.ToLower(makeArray[0])
+		vehicleMake, err := obtainMake(makeArray, model)
+		if err != nil {
+			return vps, err
 		}
 		for _, year := range yearsArray {
-
 			for _, style := range stylesArray {
 				for _, part := range partsArray {
 					vp := VehiclePart{
@@ -220,72 +219,168 @@ func parseLine(line []string) ([]VehiclePart, error) {
 			}
 		}
 	}
-	fmt.Println("CSV parsed.")
+	fmt.Println("CSV line parsed.")
 	return vps, err
 }
 
-func (vp *VehiclePart) ToDB() error {
-	var err error
-	// get year, make, model, style maps (to lower)
-	// look for year, make, model, style matches (to lower)
-	// if no match on some attribute-> insert that attribute into CurtData (capitalize first letter) & add to corresponding map
-	// look for vehicle match
-	// if no match-> insert into Vehicle Table
-	// look for VehiclePart match (should not be one - log existing ones)
-	// if no match -> insert vehicle part (w/ drilling)
+//if more than one make on csv line, uses make-model map or user input to determine make
+func obtainMake(makeArray []string, model string) (string, error) {
+	//check make if more than one on the line (e.g. Chevrolet/GMC)
+	if len(makeArray) == 1 {
+		return strings.ToLower(makeArray[0]), nil
+	}
+	if len(makeArray) < 1 {
+		return "", fmt.Errorf("No vehicle make in row")
+	}
 
+	var vehicleMake string
 	var ok bool
-	log.Print("HERE")
+	if vehicleMake, ok = makeToModelMap[strings.ToLower(model)]; ok {
+		return vehicleMake, nil
+	}
+
+	//user choose
+	var enterChoice string
+	makeChoiceString := fmt.Sprintf("Is the '%s' a ", model)
+	for i, m := range makeArray {
+		makeChoiceString += m + " (" + strconv.Itoa(i+1) + ") "
+	}
+	makeChoiceString += "product? "
+	fmt.Printf(makeChoiceString)
+	if _, err := fmt.Scanf("%s", &enterChoice); err != nil {
+		return vehicleMake, err
+	}
+
+	choice, err := strconv.Atoi(enterChoice)
+	if err != nil {
+		//TODO - reenter or quit
+		return vehicleMake, err
+	}
+	vehicleMake = strings.ToLower(makeArray[choice-1])
+	makeToModelMap[strings.ToLower(model)] = vehicleMake //add to map
+	return vehicleMake, nil
+}
+
+// get year, make, model, style maps (to lower)
+// look for year, make, model, style matches (to lower)
+// if no match on some attribute-> insert that attribute into CurtData (capitalize first letter) & add to corresponding map
+// look for vehicle match
+// if no match-> insert into Vehicle Table
+// look for VehiclePart match (should not be one - log existing ones)
+// if no match -> insert vehicle part (w/ drilling)
+func (vp *VehiclePart) Build() (error, bool) {
+	var err error
+	var ok bool
+	var id int
+	skip := true
 	if vp.Vehicle.YearID, ok = yearMap[vp.Vehicle.Year]; !ok {
 		var enterYear string
-		fmt.Printf("Enter year %d into database? y/n: ", vp.Vehicle.Year)
+		fmt.Printf("Enter year '%d' into database? y/n: ", vp.Vehicle.Year)
 		if _, err := fmt.Scanf("%s", &enterYear); err != nil {
-			return err
+			return err, skip
 		}
 		if strings.ToLower(enterYear) == "y" {
 			//create year & put in map
-
+			id, err = addYear(vp.Vehicle.Year)
+			if err != nil {
+				return err, skip
+			}
+			vp.Vehicle.YearID = id
 		} else {
 			//save missing vp to csv
+			return vp.toErrFile(fmt.Sprintf("Opted not to enter year %s", vp.Vehicle.Year)), skip
 		}
 	}
 	if vp.Vehicle.MakeID, ok = makeMap[vp.Vehicle.Make]; !ok {
 		var enterMake string
-		fmt.Printf("Enter make %s into database? y/n: ", vp.Vehicle.Make)
+		fmt.Printf("Enter make '%s' into database? y/n: ", vp.Vehicle.Make)
 		if _, err := fmt.Scanf("%s", &enterMake); err != nil {
-			return err
+			return err, skip
 		}
 		if strings.ToLower(enterMake) == "y" {
 			//create make (capitalize) & put in map
+			id, err = addMake(vp.Vehicle.Make)
+			if err != nil {
+				return err, skip
+			}
+			vp.Vehicle.MakeID = id
 		} else {
-			//save missing vp to csv
+			//choose and alter map
+			vp.Vehicle.MakeID = chooseFromMap("make", vp.Vehicle.Make)
+			if vp.Vehicle.MakeID == 0 {
+				//save missing vp to csv
+				return vp.toErrFile(fmt.Sprintf("Opted not to enter make %s", vp.Vehicle.Make)), skip
+			}
 		}
 	}
 	if vp.Vehicle.ModelID, ok = modelMap[vp.Vehicle.Model]; !ok {
 		var enterModel string
-		fmt.Printf("Enter model %s into database? y/n: ", vp.Vehicle.Model)
+		fmt.Printf("Enter model '%s' into database? y/n: ", vp.Vehicle.Model)
 		if _, err := fmt.Scanf("%s", &enterModel); err != nil {
-			return err
+			return err, skip
 		}
 		if strings.ToLower(enterModel) == "y" {
 			//create model(capitalize) & put in map
+			id, err = addModel(vp.Vehicle.Model)
+			if err != nil {
+				return err, skip
+			}
+			vp.Vehicle.ModelID = id
 		} else {
-			//save missing vp to csv
+			//choose and alter map
+			vp.Vehicle.ModelID = chooseFromMap("model", vp.Vehicle.Model)
+			if vp.Vehicle.ModelID == 0 {
+				//save missing vp to csv
+				return vp.toErrFile(fmt.Sprintf("Opted not to enter model %s", vp.Vehicle.Model)), skip
+			}
 		}
 	}
 	if vp.Vehicle.StyleID, ok = styleMap[vp.Vehicle.Style]; !ok {
+		// log.Print(styleMap)
 		var enterStyle string
-		fmt.Printf("Enter style %s into database? y/n: ", vp.Vehicle.Style)
+		fmt.Printf("Enter style '%s' into database? y/n: ", vp.Vehicle.Style)
 		if _, err := fmt.Scanf("%s", &enterStyle); err != nil {
-			return err
+			return err, skip
 		}
 		if strings.ToLower(enterStyle) == "y" {
 			//create style(capitalize) & put in map
+			id, err = addStyle(vp.Vehicle.Style)
+			if err != nil {
+				return err, skip
+			}
+			vp.Vehicle.StyleID = id
 		} else {
-			//save missing vp to csv
+			//choose and alter map
+			vp.Vehicle.StyleID = chooseFromMap("style", vp.Vehicle.Style)
+			if vp.Vehicle.StyleID == 0 {
+				//save missing vp to csv
+				return vp.toErrFile(fmt.Sprintf("Opted not to enter style %s", vp.Vehicle.Style)), skip
+			}
 		}
 	}
+	fmt.Println("Vehicle established.")
+	return nil, false
+}
 
-	fmt.Println("VehicleApplication DB-ed.")
-	return err
+//insert vehicle and vehicle part into MySql DB
+//checks for existence of each first
+func (vp *VehiclePart) insert() error {
+	var ok bool
+	var err error
+	vehicleMapKey := strconv.Itoa(vp.Vehicle.YearID) + "|" + strconv.Itoa(vp.Vehicle.MakeID) + "|" + strconv.Itoa(vp.Vehicle.ModelID) + "|" + strconv.Itoa(vp.Vehicle.StyleID)
+	vehiclePartMapKey := strconv.Itoa(vp.Vehicle.ID) + "|" + strconv.Itoa(vp.PartID)
+
+	if vp.Vehicle.ID, ok = vehicleMap[vehicleMapKey]; !ok {
+		err = vp.addVehicle()
+		if err != nil {
+			return err
+		}
+	}
+	if _, ok = vehiclePartMap[vehiclePartMapKey]; !ok {
+		err = vp.add()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

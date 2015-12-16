@@ -97,3 +97,51 @@ func getStyleMap() (map[string]int, error) {
 	}
 	return zMap, nil
 }
+
+func getVehicleMap() (map[string]int, error) {
+	zMap := make(map[string]int)
+	db, err := sql.Open("mysql", database.ConnectionString())
+	if err != nil {
+		return zMap, err
+	}
+	defer db.Close()
+
+	rows, err := db.Query("select vehicleID, concat_ws('|', yearID, makeID, modelID, styleID) as v from Vehicle")
+	if err != nil {
+		return zMap, err
+	}
+	var i *int
+	var m *string
+	for rows.Next() {
+		err = rows.Scan(&i, &m)
+		if err != nil {
+			return zMap, err
+		}
+		zMap[*m] = *i
+	}
+	return zMap, nil
+}
+
+func getVehiclePartMap() (map[string]int, error) {
+	zMap := make(map[string]int)
+	db, err := sql.Open("mysql", database.ConnectionString())
+	if err != nil {
+		return zMap, err
+	}
+	defer db.Close()
+
+	rows, err := db.Query("select vPartID, concat_ws('|', vehicleID, partID) as v from VehiclePart")
+	if err != nil {
+		return zMap, err
+	}
+	var i *int
+	var m *string
+	for rows.Next() {
+		err = rows.Scan(&i, &m)
+		if err != nil {
+			return zMap, err
+		}
+		zMap[*m] = *i
+	}
+	return zMap, nil
+}
