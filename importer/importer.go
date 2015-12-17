@@ -256,8 +256,10 @@ func obtainMake(makeArray []string, model string) (string, error) {
 	}
 
 	choice, err := strconv.Atoi(enterChoice)
-	if err != nil {
-		//TODO - reenter or quit
+	if err != nil || choice < 1 || choice > len(makeArray)+1 {
+		if err == nil {
+			err = fmt.Errorf("Choice is not allowed.")
+		}
 		return vehicleMake, err
 	}
 	vehicleMake = strings.ToLower(makeArray[choice-1])
