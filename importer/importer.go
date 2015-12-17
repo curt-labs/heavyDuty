@@ -4,11 +4,12 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"github.com/curt-labs/heavyduty/database"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/curt-labs/heavyduty/database"
 )
 
 type Vehicle struct {
@@ -275,7 +276,7 @@ func (vp *VehiclePart) Build() (error, bool) {
 	skip := true
 	if vp.Vehicle.YearID, ok = yearMap[vp.Vehicle.Year]; !ok {
 		var enterYear string
-		fmt.Printf("Enter year '%d' into database? y/n: ", vp.Vehicle.Year)
+		fmt.Printf("Enter year '%f' into database? y/n: ", vp.Vehicle.Year)
 		if _, err := fmt.Scanf("%s", &enterYear); err != nil {
 			return err, skip
 		}
@@ -288,7 +289,7 @@ func (vp *VehiclePart) Build() (error, bool) {
 			vp.Vehicle.YearID = id
 		} else {
 			//save missing vp to csv
-			return vp.toErrFile(fmt.Sprintf("Opted not to enter year %s", vp.Vehicle.Year)), skip
+			return vp.toErrFile(fmt.Sprintf("Opted not to enter year %f", vp.Vehicle.Year)), skip
 		}
 	}
 	if vp.Vehicle.MakeID, ok = makeMap[vp.Vehicle.Make]; !ok {
@@ -367,16 +368,18 @@ func (vp *VehiclePart) Build() (error, bool) {
 func (vp *VehiclePart) insert() error {
 	var ok bool
 	var err error
+	var vpID int //vehiclePartID - only used here
 	vehicleMapKey := strconv.Itoa(vp.Vehicle.YearID) + "|" + strconv.Itoa(vp.Vehicle.MakeID) + "|" + strconv.Itoa(vp.Vehicle.ModelID) + "|" + strconv.Itoa(vp.Vehicle.StyleID)
 	vehiclePartMapKey := strconv.Itoa(vp.Vehicle.ID) + "|" + strconv.Itoa(vp.PartID)
 
-	if vp.Vehicle.ID, ok = vehicleMap[vehicleMapKey]; !ok {
+	if vp.Vehicle.ID, ok = vehicleMap[vehicleMapKey]; !ok || vp.Vehicle.ID == 0 {
 		err = vp.addVehicle()
 		if err != nil {
 			return err
 		}
 	}
-	if _, ok = vehiclePartMap[vehiclePartMapKey]; !ok {
+
+	if vpID, ok = vehiclePartMap[vehiclePartMapKey]; !ok || vpID == 0 {
 		err = vp.add()
 		if err != nil {
 			return err
