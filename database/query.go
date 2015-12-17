@@ -2,7 +2,8 @@ package database
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
+
+	_ "github.com/go-sql-driver/mysql" //you need this
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 	VEHICLE_PART_TABLE = "VehiclePartTEMP"
 )
 
-//create and/or truncate temp tables
+//CreateNewtables create and/or truncate temp tables
 func CreateNewTables() error {
 	styles := `CREATE TABLE IF NOT EXISTS ` + STYLE_TABLE + ` (
 		  styleID int(11) NOT NULL AUTO_INCREMENT,
@@ -49,6 +50,10 @@ func CreateNewTables() error {
 		  modelID int(11) NOT NULL,
 		  styleID int(11) NOT NULL,
 		  dateAdded timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			yearTemp tinyint(1),
+			makeTemp tinyint(1),
+			modelTemp tinyint(1),
+			styleTemp tinyint(1),
 		  PRIMARY KEY (vehicleID)
 		) ENGINE=InnoDB AUTO_INCREMENT=250265 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;`
 
@@ -59,6 +64,7 @@ func CreateNewTables() error {
 		  drilling varchar(100) DEFAULT NULL,
 		  exposed varchar(100) DEFAULT NULL,
 		  installTime int(11) DEFAULT NULL,
+			vehicleTemp tinyint(1),
 		  PRIMARY KEY (vPartID)
 		) ENGINE=InnoDB AUTO_INCREMENT=51821 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;`
 

@@ -2,8 +2,9 @@ package importer
 
 import (
 	"database/sql"
-	"github.com/curt-labs/heavyduty/database"
 	"strconv"
+
+	"github.com/curt-labs/heavyduty/database"
 )
 
 func addYear(year float64) (int, error) {
@@ -107,11 +108,15 @@ func (vp *VehiclePart) addVehicle() error {
 	defer db.Close()
 
 	res, err := db.Exec(
-		"insert into "+database.VEHICLE_TABLE+" (yearID, makeID, modelID, styleID, dateAdded) values (?, ?, ?, ?, NOW())",
+		"insert into "+database.VEHICLE_TABLE+" (yearID, makeID, modelID, styleID, dateAdded, yearTemp, makeTemp, modelTemp, styleTemp) values (?, ?, ?, ?, NOW(),?,?,?,?)",
 		vp.Vehicle.YearID,
 		vp.Vehicle.MakeID,
 		vp.Vehicle.ModelID,
 		vp.Vehicle.StyleID,
+		vp.Vehicle.YearTemp,
+		vp.Vehicle.MakeTemp,
+		vp.Vehicle.ModelTemp,
+		vp.Vehicle.StyleTemp,
 	)
 	if err != nil {
 		return err
@@ -135,7 +140,7 @@ func (vp *VehiclePart) add() error {
 	}
 	defer db.Close()
 
-	res, err := db.Exec("insert into "+database.VEHICLE_PART_TABLE+" (vehicleID, partID, drilling) values (?,?,?)", vp.Vehicle.ID, vp.PartID, vp.Drilling)
+	res, err := db.Exec("insert into "+database.VEHICLE_PART_TABLE+" (vehicleID, partID, drilling, vehicleTemp) values (?,?,?,?)", vp.Vehicle.ID, vp.PartID, vp.Drilling, vp.VehicleTemp)
 	if err != nil {
 		return err
 	}

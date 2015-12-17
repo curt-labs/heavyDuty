@@ -13,23 +13,30 @@ import (
 )
 
 //Vehicle (style-based)
+//The 'temp' fields indicate whether these attributes were entered in temp table
 type Vehicle struct {
-	ID      int
-	Year    float64
-	YearID  int
-	Make    string
-	MakeID  int
-	Model   string
-	ModelID int
-	Style   string
-	StyleID int
+	ID        int
+	Year      float64
+	YearID    int
+	YearTemp  bool
+	Make      string
+	MakeID    int
+	MakeTemp  bool
+	Model     string
+	ModelID   int
+	ModelTemp bool
+	Style     string
+	StyleID   int
+	StyleTemp bool
 }
 
 //VehiclePart links VehicleID to PartID
+//The VehicleTemp field indicates whether this vehicle existed in the DB already
 type VehiclePart struct {
-	PartID   int
-	Vehicle  Vehicle
-	Drilling string
+	PartID      int
+	Vehicle     Vehicle
+	Drilling    string
+	VehicleTemp bool
 }
 
 var (
@@ -256,11 +263,12 @@ func obtainMake(makeArray []string, model string) (string, error) {
 	}
 
 	choice, err := strconv.Atoi(enterChoice)
-	if err != nil || choice < 1 || choice > len(makeArray)+1 {
-		if err == nil {
-			err = fmt.Errorf("Choice is not allowed.")
-		}
+	log.Print(choice)
+	if err != nil {
 		return vehicleMake, err
+	}
+	if choice < 1 || choice > len(makeArray) {
+		return "", fmt.Errorf("Choice is not allowed.")
 	}
 	vehicleMake = strings.ToLower(makeArray[choice-1])
 	makeToModelMap[strings.ToLower(model)] = vehicleMake //add to map
@@ -293,6 +301,7 @@ func (vp *VehiclePart) Build() (bool, error) {
 				return skip, err
 			}
 			vp.Vehicle.YearID = id
+			vp.Vehicle.YearTemp = true
 		} else {
 			//save missing vp to csv
 			return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter year %f", vp.Vehicle.Year))
@@ -311,6 +320,7 @@ func (vp *VehiclePart) Build() (bool, error) {
 				return skip, err
 			}
 			vp.Vehicle.MakeID = id
+			vp.Vehicle.MakeTemp = true
 		} else {
 			//choose and alter map
 			vp.Vehicle.MakeID = chooseFromMap("make", vp.Vehicle.Make)
@@ -333,6 +343,7 @@ func (vp *VehiclePart) Build() (bool, error) {
 				return skip, err
 			}
 			vp.Vehicle.ModelID = id
+			vp.Vehicle.ModelTemp = true
 		} else {
 			//choose and alter map
 			vp.Vehicle.ModelID = chooseFromMap("model", vp.Vehicle.Model)
@@ -356,6 +367,7 @@ func (vp *VehiclePart) Build() (bool, error) {
 				return skip, err
 			}
 			vp.Vehicle.StyleID = id
+			vp.Vehicle.StyleTemp = true
 		} else {
 			//choose and alter map
 			vp.Vehicle.StyleID = chooseFromMap("style", vp.Vehicle.Style)
@@ -383,6 +395,7 @@ func (vp *VehiclePart) insert() error {
 		if err != nil {
 			return err
 		}
+		vp.VehicleTemp = true
 	}
 
 	if vpID, ok = vehiclePartMap[vehiclePartMapKey]; !ok || vpID == 0 {
