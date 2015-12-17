@@ -15,7 +15,7 @@ func addYear(year float64) (int, error) {
 	}
 	defer db.Close()
 
-	res, err := db.Exec("insert into "+database.YEAR_TABLE+" (year) values (?)", year)
+	res, err := db.Exec("insert into "+database.YearTableTemp+" (year) values (?)", year)
 	if err != nil {
 		return ID, err
 	}
@@ -26,7 +26,7 @@ func addYear(year float64) (int, error) {
 	ID = int(id)
 
 	//add to map
-	yearMap[year] = ID
+	yearMapNew[year] = ID
 	return ID, err
 }
 
@@ -38,7 +38,7 @@ func addMake(makeName string) (int, error) {
 	}
 	defer db.Close()
 
-	res, err := db.Exec("insert into "+database.MAKE_TABLE+" (make) values (?)", capitalize(makeName))
+	res, err := db.Exec("insert into "+database.MakeTableTemp+" (make) values (?)", capitalize(makeName))
 	if err != nil {
 		return ID, err
 	}
@@ -49,7 +49,7 @@ func addMake(makeName string) (int, error) {
 	ID = int(id)
 
 	//add to map
-	makeMap[makeName] = ID
+	makeMapNew[makeName] = ID
 	return ID, err
 }
 
@@ -61,7 +61,7 @@ func addModel(model string) (int, error) {
 	}
 	defer db.Close()
 
-	res, err := db.Exec("insert into "+database.MODEL_TABLE+" (model) values (?)", capitalize(model))
+	res, err := db.Exec("insert into "+database.ModelTableTemp+" (model) values (?)", capitalize(model))
 	if err != nil {
 		return ID, err
 	}
@@ -72,7 +72,7 @@ func addModel(model string) (int, error) {
 	ID = int(id)
 
 	//add to map
-	modelMap[model] = ID
+	modelMapNew[model] = ID
 	return ID, err
 }
 
@@ -84,7 +84,7 @@ func addStyle(style string) (int, error) {
 	}
 	defer db.Close()
 
-	res, err := db.Exec("insert into "+database.STYLE_TABLE+" (style, aaiaID) values (?, 0)", capitalize(style))
+	res, err := db.Exec("insert into "+database.StyleTableTemp+" (style, aaiaID) values (?, 0)", capitalize(style))
 	if err != nil {
 		return ID, err
 	}
@@ -95,7 +95,7 @@ func addStyle(style string) (int, error) {
 	ID = int(id)
 
 	//add to map
-	styleMap[style] = ID
+	styleMapNew[style] = ID
 	return ID, err
 }
 
@@ -108,7 +108,7 @@ func (vp *VehiclePart) addVehicle() error {
 	defer db.Close()
 
 	res, err := db.Exec(
-		"insert into "+database.VEHICLE_TABLE+" (yearID, makeID, modelID, styleID, dateAdded, yearTemp, makeTemp, modelTemp, styleTemp) values (?, ?, ?, ?, NOW(),?,?,?,?)",
+		"insert into "+database.VehicleTableTemp+" (yearID, makeID, modelID, styleID, dateAdded, yearTemp, makeTemp, modelTemp, styleTemp) values (?, ?, ?, ?, NOW(),?,?,?,?)",
 		vp.Vehicle.YearID,
 		vp.Vehicle.MakeID,
 		vp.Vehicle.ModelID,
@@ -140,7 +140,7 @@ func (vp *VehiclePart) add() error {
 	}
 	defer db.Close()
 
-	res, err := db.Exec("insert into "+database.VEHICLE_PART_TABLE+" (vehicleID, partID, drilling, vehicleTemp) values (?,?,?,?)", vp.Vehicle.ID, vp.PartID, vp.Drilling, vp.VehicleTemp)
+	res, err := db.Exec("insert into "+database.VehiclePartTableTemp+" (vehicleID, partID, drilling, vehicleTemp) values (?,?,?,?)", vp.Vehicle.ID, vp.PartID, vp.Drilling, vp.VehicleTemp)
 	if err != nil {
 		return err
 	}

@@ -48,9 +48,17 @@ var (
 	vehicleMap     map[string]int
 	vehiclePartMap map[string]int
 	makeToModelMap map[string]string
+
+	//new
+	yearMapNew    = make(map[float64]int)
+	makeMapNew    = make(map[string]int)
+	modelMapNew   = make(map[string]int)
+	styleMapNew   = make(map[string]int)
+	vehicleMapNew = make(map[string]int)
 )
 
-func init() {
+//Init creates maps
+func Init() {
 	var err error
 	//maps
 	yearMap, err = getYearMap()
@@ -88,6 +96,7 @@ func init() {
 
 // Get - main function for reading csv and databasing
 func Get() error {
+	Init()
 	var counter int
 	flag.Parse()
 	f, err := os.Open(*path)
@@ -133,6 +142,7 @@ func Get() error {
 			if skip {
 				continue
 			}
+			log.Print(vps[i])
 			err = vps[i].insert()
 			if err != nil {
 				return err
@@ -140,8 +150,6 @@ func Get() error {
 		}
 	}
 	fmt.Println(counter, " vehicleParts examined")
-	//index (mongo-ize) all new parts
-
 	return nil
 }
 
@@ -285,100 +293,169 @@ func obtainMake(makeArray []string, model string) (string, error) {
 // if no match -> insert vehicle part (w/ drilling)
 func (vp *VehiclePart) Build() (bool, error) {
 	var err error
-	var ok bool
-	var id int
 	skip := true
-	if vp.Vehicle.YearID, ok = yearMap[vp.Vehicle.Year]; !ok {
-		var enterYear string
-		fmt.Printf("Enter year '%f' into database? y/n: ", vp.Vehicle.Year)
-		if _, err := fmt.Scanf("%s", &enterYear); err != nil {
-			return skip, err
-		}
-		if strings.ToLower(enterYear) == "y" {
-			//create year & put in map
-			id, err = addYear(vp.Vehicle.Year)
-			if err != nil {
-				return skip, err
-			}
-			vp.Vehicle.YearID = id
-			vp.Vehicle.YearTemp = true
-		} else {
-			//save missing vp to csv
-			return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter year %f", vp.Vehicle.Year))
-		}
+	skip, err = vp.findYearID()
+	if err != nil || skip == true {
+		return true, err
 	}
-	if vp.Vehicle.MakeID, ok = makeMap[vp.Vehicle.Make]; !ok {
-		var enterMake string
-		fmt.Printf("Enter make '%s' into database? y/n: ", vp.Vehicle.Make)
-		if _, err := fmt.Scanf("%s", &enterMake); err != nil {
-			return skip, err
-		}
-		if strings.ToLower(enterMake) == "y" {
-			//create make (capitalize) & put in map
-			id, err = addMake(vp.Vehicle.Make)
-			if err != nil {
-				return skip, err
-			}
-			vp.Vehicle.MakeID = id
-			vp.Vehicle.MakeTemp = true
-		} else {
-			//choose and alter map
-			vp.Vehicle.MakeID = chooseFromMap("make", vp.Vehicle.Make)
-			if vp.Vehicle.MakeID == 0 {
-				//save missing vp to csv
-				return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter make %s", vp.Vehicle.Make))
-			}
-		}
+	skip, err = vp.findMakeID()
+	if err != nil || skip == true {
+		return true, err
 	}
-	if vp.Vehicle.ModelID, ok = modelMap[vp.Vehicle.Model]; !ok {
-		var enterModel string
-		fmt.Printf("Enter model '%s' into database? y/n: ", vp.Vehicle.Model)
-		if _, err := fmt.Scanf("%s", &enterModel); err != nil {
-			return skip, err
-		}
-		if strings.ToLower(enterModel) == "y" {
-			//create model(capitalize) & put in map
-			id, err = addModel(vp.Vehicle.Model)
-			if err != nil {
-				return skip, err
-			}
-			vp.Vehicle.ModelID = id
-			vp.Vehicle.ModelTemp = true
-		} else {
-			//choose and alter map
-			vp.Vehicle.ModelID = chooseFromMap("model", vp.Vehicle.Model)
-			if vp.Vehicle.ModelID == 0 {
-				//save missing vp to csv
-				return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter model %s", vp.Vehicle.Model))
-			}
-		}
+	skip, err = vp.findModelID()
+	if err != nil || skip == true {
+		return true, err
 	}
-	if vp.Vehicle.StyleID, ok = styleMap[vp.Vehicle.Style]; !ok {
-		// log.Print(styleMap)
-		var enterStyle string
-		fmt.Printf("Enter style '%s' into database? y/n: ", vp.Vehicle.Style)
-		if _, err := fmt.Scanf("%s", &enterStyle); err != nil {
-			return skip, err
-		}
-		if strings.ToLower(enterStyle) == "y" {
-			//create style(capitalize) & put in map
-			id, err = addStyle(vp.Vehicle.Style)
-			if err != nil {
-				return skip, err
-			}
-			vp.Vehicle.StyleID = id
-			vp.Vehicle.StyleTemp = true
-		} else {
-			//choose and alter map
-			vp.Vehicle.StyleID = chooseFromMap("style", vp.Vehicle.Style)
-			if vp.Vehicle.StyleID == 0 {
-				//save missing vp to csv
-				return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter style %s", vp.Vehicle.Style))
-			}
-		}
+	skip, err = vp.findStyleID()
+	if err != nil || skip == true {
+		return true, err
 	}
 	fmt.Println("Vehicle established.")
 	return false, nil
+}
+
+func (vp *VehiclePart) findYearID() (bool, error) {
+	var id int
+	var err error
+	var ok bool
+	if id, ok = yearMap[vp.Vehicle.Year]; ok {
+		vp.Vehicle.YearID = id
+		return false, nil
+	}
+	if id, ok = yearMapNew[vp.Vehicle.Year]; ok {
+		vp.Vehicle.YearID = id
+		vp.Vehicle.YearTemp = true
+		return false, nil
+	}
+	var enterYear string
+	fmt.Printf("Enter year '%f' into database? y/n: ", vp.Vehicle.Year)
+	if _, err := fmt.Scanf("%s", &enterYear); err != nil {
+		return true, err
+	}
+	if strings.ToLower(enterYear) == "y" {
+		//create year & put in map
+		id, err = addYear(vp.Vehicle.Year)
+		if err != nil {
+			return true, err
+		}
+		vp.Vehicle.YearID = id
+		vp.Vehicle.YearTemp = true
+		return false, nil
+	}
+	//save missing vp to csv
+	return true, vp.toErrFile(fmt.Sprintf("Opted not to enter year %f", vp.Vehicle.Year))
+}
+func (vp *VehiclePart) findMakeID() (bool, error) {
+	var id int
+	var err error
+	var ok bool
+	if id, ok = makeMap[vp.Vehicle.Make]; ok {
+		vp.Vehicle.MakeID = id
+		return false, nil
+	}
+	if id, ok = makeMapNew[vp.Vehicle.Make]; ok {
+		vp.Vehicle.MakeID = id
+		vp.Vehicle.MakeTemp = true
+		return false, nil
+	}
+
+	var enterMake string
+	fmt.Printf("Enter make '%s' into database? y/n: ", vp.Vehicle.Make)
+	if _, err := fmt.Scanf("%s", &enterMake); err != nil {
+		return true, err
+	}
+	if strings.ToLower(enterMake) == "y" {
+		//create make (capitalize) & put in map
+		id, err = addMake(vp.Vehicle.Make)
+		if err != nil {
+			return true, err
+		}
+		vp.Vehicle.MakeID = id
+		vp.Vehicle.MakeTemp = true
+		return false, nil
+	}
+	//choose and alter map
+	vp.Vehicle.MakeID = chooseFromMap("make", vp.Vehicle.Make)
+	if vp.Vehicle.MakeID == 0 {
+		//save missing vp to csv
+		return true, vp.toErrFile(fmt.Sprintf("Opted not to enter make %s", vp.Vehicle.Make))
+	}
+	return false, nil
+}
+func (vp *VehiclePart) findModelID() (bool, error) {
+	var id int
+	var err error
+	var ok bool
+	if id, ok = modelMap[vp.Vehicle.Model]; ok {
+		vp.Vehicle.ModelID = id
+		return false, nil
+	}
+	if id, ok = modelMapNew[vp.Vehicle.Model]; ok {
+		vp.Vehicle.ModelID = id
+		vp.Vehicle.ModelTemp = true
+		return false, nil
+	}
+	var enterModel string
+	fmt.Printf("Enter model '%s' into database? y/n: ", vp.Vehicle.Model)
+	if _, err := fmt.Scanf("%s", &enterModel); err != nil {
+		return true, err
+	}
+	if strings.ToLower(enterModel) == "y" {
+		//create model(capitalize) & put in map
+		id, err = addModel(vp.Vehicle.Model)
+		if err != nil {
+			return true, err
+		}
+		vp.Vehicle.ModelID = id
+		vp.Vehicle.ModelTemp = true
+		return false, err
+	}
+	//choose and alter map
+	vp.Vehicle.ModelID = chooseFromMap("model", vp.Vehicle.Model)
+	if vp.Vehicle.ModelID == 0 {
+		//save missing vp to csv
+		return true, vp.toErrFile(fmt.Sprintf("Opted not to enter model %s", vp.Vehicle.Model))
+	}
+	return false, nil
+}
+func (vp *VehiclePart) findStyleID() (bool, error) {
+	var id int
+	var err error
+	var ok bool
+	if id, ok = styleMap[vp.Vehicle.Style]; ok {
+		vp.Vehicle.StyleID = id
+		return false, nil
+	}
+	if id, ok = styleMapNew[vp.Vehicle.Style]; ok {
+		vp.Vehicle.StyleID = id
+		vp.Vehicle.StyleTemp = true
+		return false, nil
+	}
+
+	// log.Print(styleMap)
+	var enterStyle string
+	fmt.Printf("Enter style '%s' into database? y/n: ", vp.Vehicle.Style)
+	if _, err := fmt.Scanf("%s", &enterStyle); err != nil {
+		return true, err
+	}
+	if strings.ToLower(enterStyle) == "y" {
+		//create style(capitalize) & put in map
+		id, err = addStyle(vp.Vehicle.Style)
+		if err != nil {
+			return true, err
+		}
+		vp.Vehicle.StyleID = id
+		vp.Vehicle.StyleTemp = true
+		return false, err
+	}
+	//choose and alter map
+	vp.Vehicle.StyleID = chooseFromMap("style", vp.Vehicle.Style)
+	if vp.Vehicle.StyleID == 0 {
+		//save missing vp to csv
+		return true, vp.toErrFile(fmt.Sprintf("Opted not to enter style %s", vp.Vehicle.Style))
+	}
+	return false, nil
+
 }
 
 //insert vehicle and vehicle part into MySql DB
