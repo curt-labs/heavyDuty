@@ -142,7 +142,6 @@ func Get() error {
 			if skip {
 				continue
 			}
-			log.Print(vps[i])
 			err = vps[i].insert()
 			if err != nil {
 				return err
@@ -271,7 +270,6 @@ func obtainMake(makeArray []string, model string) (string, error) {
 	}
 
 	choice, err := strconv.Atoi(enterChoice)
-	log.Print(choice)
 	if err != nil {
 		return vehicleMake, err
 	}
@@ -432,7 +430,6 @@ func (vp *VehiclePart) findStyleID() (bool, error) {
 		return false, nil
 	}
 
-	// log.Print(styleMap)
 	var enterStyle string
 	fmt.Printf("Enter style '%s' into database? y/n: ", vp.Vehicle.Style)
 	if _, err := fmt.Scanf("%s", &enterStyle); err != nil {
