@@ -12,6 +12,7 @@ import (
 	"github.com/curt-labs/heavyduty/database"
 )
 
+//Vehicle (style-based)
 type Vehicle struct {
 	ID      int
 	Year    float64
@@ -24,6 +25,7 @@ type Vehicle struct {
 	StyleID int
 }
 
+//VehiclePart links VehicleID to PartID
 type VehiclePart struct {
 	PartID   int
 	Vehicle  Vehicle
@@ -77,6 +79,7 @@ func init() {
 	fmt.Println("Maps obtained.")
 }
 
+// Get - main function for reading csv and databasing
 func Get() error {
 	var counter int
 	flag.Parse()
@@ -112,9 +115,9 @@ func Get() error {
 		}
 
 		//range over vehicleApps from csv parsing
-		for i, _ := range vps {
+		for i := range vps {
 			//create vehicleApps (with yearId, makeId, modelId, styleId)
-			err, skip := vps[i].Build()
+			skip, err := vps[i].Build()
 			if err != nil {
 				return err
 			}
@@ -182,8 +185,8 @@ func parseLine(line []string) ([]VehiclePart, error) {
 	//parts array
 	var partsArray []int
 	for _, x := range []int{7, 8, 9, 10, 11} {
-		if partId, err := strconv.Atoi(line[x]); err == nil {
-			partsArray = append(partsArray, partId)
+		if partID, err := strconv.Atoi(line[x]); err == nil {
+			partsArray = append(partsArray, partID)
 		}
 		err = nil
 	}
@@ -262,6 +265,7 @@ func obtainMake(makeArray []string, model string) (string, error) {
 	return vehicleMake, nil
 }
 
+// Build makes vehicle from string values
 // get year, make, model, style maps (to lower)
 // look for year, make, model, style matches (to lower)
 // if no match on some attribute-> insert that attribute into CurtData (capitalize first letter) & add to corresponding map
@@ -269,7 +273,7 @@ func obtainMake(makeArray []string, model string) (string, error) {
 // if no match-> insert into Vehicle Table
 // look for VehiclePart match (should not be one - log existing ones)
 // if no match -> insert vehicle part (w/ drilling)
-func (vp *VehiclePart) Build() (error, bool) {
+func (vp *VehiclePart) Build() (bool, error) {
 	var err error
 	var ok bool
 	var id int
@@ -278,31 +282,31 @@ func (vp *VehiclePart) Build() (error, bool) {
 		var enterYear string
 		fmt.Printf("Enter year '%f' into database? y/n: ", vp.Vehicle.Year)
 		if _, err := fmt.Scanf("%s", &enterYear); err != nil {
-			return err, skip
+			return skip, err
 		}
 		if strings.ToLower(enterYear) == "y" {
 			//create year & put in map
 			id, err = addYear(vp.Vehicle.Year)
 			if err != nil {
-				return err, skip
+				return skip, err
 			}
 			vp.Vehicle.YearID = id
 		} else {
 			//save missing vp to csv
-			return vp.toErrFile(fmt.Sprintf("Opted not to enter year %f", vp.Vehicle.Year)), skip
+			return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter year %f", vp.Vehicle.Year))
 		}
 	}
 	if vp.Vehicle.MakeID, ok = makeMap[vp.Vehicle.Make]; !ok {
 		var enterMake string
 		fmt.Printf("Enter make '%s' into database? y/n: ", vp.Vehicle.Make)
 		if _, err := fmt.Scanf("%s", &enterMake); err != nil {
-			return err, skip
+			return skip, err
 		}
 		if strings.ToLower(enterMake) == "y" {
 			//create make (capitalize) & put in map
 			id, err = addMake(vp.Vehicle.Make)
 			if err != nil {
-				return err, skip
+				return skip, err
 			}
 			vp.Vehicle.MakeID = id
 		} else {
@@ -310,7 +314,7 @@ func (vp *VehiclePart) Build() (error, bool) {
 			vp.Vehicle.MakeID = chooseFromMap("make", vp.Vehicle.Make)
 			if vp.Vehicle.MakeID == 0 {
 				//save missing vp to csv
-				return vp.toErrFile(fmt.Sprintf("Opted not to enter make %s", vp.Vehicle.Make)), skip
+				return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter make %s", vp.Vehicle.Make))
 			}
 		}
 	}
@@ -318,13 +322,13 @@ func (vp *VehiclePart) Build() (error, bool) {
 		var enterModel string
 		fmt.Printf("Enter model '%s' into database? y/n: ", vp.Vehicle.Model)
 		if _, err := fmt.Scanf("%s", &enterModel); err != nil {
-			return err, skip
+			return skip, err
 		}
 		if strings.ToLower(enterModel) == "y" {
 			//create model(capitalize) & put in map
 			id, err = addModel(vp.Vehicle.Model)
 			if err != nil {
-				return err, skip
+				return skip, err
 			}
 			vp.Vehicle.ModelID = id
 		} else {
@@ -332,7 +336,7 @@ func (vp *VehiclePart) Build() (error, bool) {
 			vp.Vehicle.ModelID = chooseFromMap("model", vp.Vehicle.Model)
 			if vp.Vehicle.ModelID == 0 {
 				//save missing vp to csv
-				return vp.toErrFile(fmt.Sprintf("Opted not to enter model %s", vp.Vehicle.Model)), skip
+				return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter model %s", vp.Vehicle.Model))
 			}
 		}
 	}
@@ -341,13 +345,13 @@ func (vp *VehiclePart) Build() (error, bool) {
 		var enterStyle string
 		fmt.Printf("Enter style '%s' into database? y/n: ", vp.Vehicle.Style)
 		if _, err := fmt.Scanf("%s", &enterStyle); err != nil {
-			return err, skip
+			return skip, err
 		}
 		if strings.ToLower(enterStyle) == "y" {
 			//create style(capitalize) & put in map
 			id, err = addStyle(vp.Vehicle.Style)
 			if err != nil {
-				return err, skip
+				return skip, err
 			}
 			vp.Vehicle.StyleID = id
 		} else {
@@ -355,12 +359,12 @@ func (vp *VehiclePart) Build() (error, bool) {
 			vp.Vehicle.StyleID = chooseFromMap("style", vp.Vehicle.Style)
 			if vp.Vehicle.StyleID == 0 {
 				//save missing vp to csv
-				return vp.toErrFile(fmt.Sprintf("Opted not to enter style %s", vp.Vehicle.Style)), skip
+				return skip, vp.toErrFile(fmt.Sprintf("Opted not to enter style %s", vp.Vehicle.Style))
 			}
 		}
 	}
 	fmt.Println("Vehicle established.")
-	return nil, false
+	return false, nil
 }
 
 //insert vehicle and vehicle part into MySql DB
