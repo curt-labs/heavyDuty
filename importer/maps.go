@@ -2,6 +2,8 @@ package importer
 
 import (
 	"database/sql"
+	"fmt"
+
 	"github.com/curt-labs/heavyduty/database"
 )
 
@@ -13,7 +15,7 @@ func getYearMap() (map[float64]int, error) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("select yearID, year from Year")
+	rows, err := db.Query(fmt.Sprintf("select yearID, year from %s", database.YearTable))
 	if err != nil {
 		return zMap, err
 	}
@@ -35,7 +37,7 @@ func getMakeMap() (map[string]int, error) {
 	if err != nil {
 		return zMap, err
 	}
-	rows, err := db.Query("select makeID, lower(make) from Make")
+	rows, err := db.Query(fmt.Sprintf("select makeID, lower(make) from %s", database.MakeTable))
 	if err != nil {
 		return zMap, err
 	}
@@ -58,7 +60,7 @@ func getModelMap() (map[string]int, error) {
 		return zMap, err
 	}
 	defer db.Close()
-	rows, err := db.Query("select modelID, lower(model) from Model")
+	rows, err := db.Query(fmt.Sprintf("select modelID, lower(model) from %s", database.ModelTable))
 	if err != nil {
 		return zMap, err
 	}
@@ -82,7 +84,7 @@ func getStyleMap() (map[string]int, error) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("select styleID, lower(style) from Style")
+	rows, err := db.Query(fmt.Sprintf("select styleID, lower(style) from %s", database.StyleTable))
 	if err != nil {
 		return zMap, err
 	}
@@ -106,7 +108,7 @@ func getVehicleMap() (map[string]int, error) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("select vehicleID, concat_ws('|', yearID, makeID, modelID, styleID) as v from Vehicle")
+	rows, err := db.Query(fmt.Sprintf("select vehicleID, concat_ws('|', yearID, makeID, modelID, styleID) as v from %s", database.VehicleTable))
 	if err != nil {
 		return zMap, err
 	}
@@ -130,7 +132,7 @@ func getVehiclePartMap() (map[string]int, error) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("select vPartID, concat_ws('|', vehicleID, partID) as v from VehiclePart")
+	rows, err := db.Query(fmt.Sprintf("select vPartID, concat_ws('|', vehicleID, partID) as v from %s", database.VehiclePartTable))
 	if err != nil {
 		return zMap, err
 	}

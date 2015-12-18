@@ -10,6 +10,7 @@ import (
 
 var (
 	skipImport = flag.Bool("skipimport", false, "Skip Import")
+	skipMerge  = flag.Bool("skipmerge", false, "Skip Merge")
 )
 
 func main() {
@@ -21,9 +22,11 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	err = merger.Merge()
-	if err != nil {
-		log.Fatal(err)
+	if *skipMerge == false {
+		err = merger.Merge()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 }
