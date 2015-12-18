@@ -13,16 +13,23 @@ import (
 )
 
 var (
-	getNewVehiclesStmt = `select vpt.partID, vpt.vehicleID, vpt.vehicleTemp, v.yearID, vt.yearID, vt.yearTemp, 
-	yt.year, v.makeID, vt.makeID, vt.makeTemp, mat.make, v.modelID, vt.modelID, vt.modelTemp, mt.model, 
+	getNewVehiclesStmt = fmt.Sprintf(`select vpt.partID, vpt.vehicleID, vpt.vehicleTemp, v.yearID, vt.yearID, vt.yearTemp,
+	yt.year, v.makeID, vt.makeID, vt.makeTemp, mat.make, v.modelID, vt.modelID, vt.modelTemp, mt.model,
 	v.styleID, vt.styleID, vt.styleTemp, st.style, vpt.drilling
-    from VehiclePartTemp vpt
-    left join VehicleTemp as vt on vt.vehicleID = vpt.vehicleID and vpt.vehicleTemp = 1
-    left join Vehicle as v on v.vehicleID = vpt.vehicleID and vpt.vehicleTemp = 0
-    left join YearTEMP yt on yt.yearID = vt.yearID
-    left join MakeTEMP mat on mat.makeID = vt.makeID
-    left join ModelTEMP mt on mt.modelID = vt.modelID
-    left join StyleTEMP st on st.styleID = vt.styleID`
+    from %s vpt
+    left join %s as vt on vt.vehicleID = vpt.vehicleID and vpt.vehicleTemp = 1
+    left join %s as v on v.vehicleID = vpt.vehicleID and vpt.vehicleTemp = 0
+    left join %s yt on yt.yearID = vt.yearID
+    left join %s mat on mat.makeID = vt.makeID
+    left join %s mt on mt.modelID = vt.modelID
+    left join %s st on st.styleID = vt.styleID`,
+		database.VehiclePartTableTemp,
+		database.VehicleTableTemp,
+		database.VehicleTable,
+		database.YearTableTemp,
+		database.MakeTableTemp,
+		database.ModelTableTemp,
+		database.StyleTableTemp)
 	insertedYears  = make(map[int]int) //tempID to new ID
 	insertedMakes  = make(map[int]int)
 	insertedModels = make(map[int]int)
