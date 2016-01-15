@@ -52,10 +52,10 @@ func main() {
 			log.Fatal(err)
 		}
 
-		err = importer.CreateRelatedParts(vps)
-		if err != nil {
-			log.Fatal(err)
-		}
+		// err = importer.CreateRelatedParts(vps)
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
 
 		err = importer.CreateStmts()
 	}

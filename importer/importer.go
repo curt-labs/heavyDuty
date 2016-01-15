@@ -118,25 +118,27 @@ func GetDataStructure() ([]VehiclePart, error) {
 		//Base Vehicle
 		vp := VehiclePart{
 			Vehicle: Vehicle{
-				Year: yearFloat,
-				Make: strings.TrimSpace(line[1]),
+				Year:  yearFloat,
+				Make:  strings.TrimSpace(line[1]),
+				Model: strings.TrimSpace(line[2]),
+				Style: strings.TrimSpace(line[3]),
 			},
 			PartID: partInt,
 		}
 
 		// Parse Model + Style
-		modelStyle := strings.Split(line[2], " ")
-		vp.Vehicle.Model = strings.TrimSpace(modelStyle[0])
+		// modelStyle := strings.Split(line[2], " ")
+		// vp.Vehicle.Model = strings.TrimSpace(modelStyle[0])
 
-		var styleArr []string
-		if len(modelStyle) > 1 {
-			styleArr = append(modelStyle[1:])
-		}
-		if len(modelStyle) == 1 || strings.ToLower(line[3]) != "all" {
-			styleArr = append(styleArr, line[3])
-		}
-		vp.Vehicle.Style = strings.Join(styleArr, " ")
-		vp.Vehicle.Style = strings.TrimSpace(vp.Vehicle.Style)
+		// var styleArr []string
+		// if len(modelStyle) > 1 {
+		// 	styleArr = append(modelStyle[1:])
+		// }
+		// if len(modelStyle) == 1 || strings.ToLower(line[3]) != "all" {
+		// 	styleArr = append(styleArr, line[3])
+		// }
+		// vp.Vehicle.Style = strings.Join(styleArr, " ")
+		// vp.Vehicle.Style = strings.TrimSpace(vp.Vehicle.Style)
 
 		//drilling/install time
 		vp.Drilling = "Yes"
