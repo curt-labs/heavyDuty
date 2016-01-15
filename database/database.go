@@ -1,7 +1,6 @@
 package database
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -12,8 +11,6 @@ import (
 )
 
 var (
-	EmptyDb = flag.String("clean", "", "bind empty database with structure defined")
-
 	ProductCollectionName = "products"
 	ProductDatabase       = "product_data"
 )

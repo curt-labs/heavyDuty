@@ -4,8 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/curt-labs/heavyduty/importer"
-	"github.com/curt-labs/heavyduty/merger"
+	"github.com/curt-labs/heavierduty/importer"
 )
 
 var (
@@ -15,18 +14,50 @@ var (
 
 func main() {
 	//TODO - those almost-universal 5th wheel parts
-	var err error
+
 	if *skipImport == false {
-		err = importer.Get()
+		var err error
+		vps, err := importer.GetDataStructure()
 		if err != nil {
 			log.Fatal(err)
 		}
-	}
-	if *skipMerge == false {
-		err = merger.Merge()
+
+		vps, err = importer.MatchYears(vps)
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		vps, err = importer.MatchMakes(vps)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		vps, err = importer.MatchModels(vps)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		vps, err = importer.MatchStyles(vps)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		vps, err = importer.MatchVehicles(vps)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		vps, err = importer.MatchVehicleParts(vps)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = importer.CreateRelatedParts(vps)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = importer.CreateStmts()
 	}
 
 }
