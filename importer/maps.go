@@ -116,7 +116,7 @@ func getVehiclePartMap() (map[string]int, map[string]int, error) {
 		join Year y on y.yearID = v.yearID
 		join Make ma on ma.makeID = v.makeID
 		join Model mo on mo.modelID = v.modelID
-		join Style s on s.styleID = s.styleID
+		join Style s on s.styleID = v.styleID
 		left join VehiclePart vp on vp.vehicleID = v.vehicleID
 		where ma.make in ('Chevrolet','Dodge','Ford','GMC','Nissan','Ram','Toyota')
 		and y.year > 1995`))

@@ -4,60 +4,88 @@ import (
 	"flag"
 	"log"
 
+	"github.com/curt-labs/heavierduty/deleter"
 	"github.com/curt-labs/heavierduty/importer"
 )
 
 var (
-	skipImport = flag.Bool("skipimport", false, "Skip Import")
-	skipMerge  = flag.Bool("skipmerge", false, "Skip Merge")
+	deleteRecords = flag.Bool("delete", false, "Do Delete Part Applications")
+	insertRecords = flag.Bool("insert", false, "Do Insert Part Applications")
 )
 
 func main() {
-	//TODO - those almost-universal 5th wheel parts
-
-	if *skipImport == false {
-		var err error
-		vps, err := importer.GetDataStructure()
+	var err error
+	flag.Parse()
+	if *deleteRecords {
+		err = deleteApplications()
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		vps, err = importer.MatchYears(vps)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		vps, err = importer.MatchMakes(vps)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		vps, err = importer.MatchModels(vps)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		vps, err = importer.MatchStyles(vps)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		vps, err = importer.MatchVehicles(vps)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		vps, err = importer.MatchVehicleParts(vps)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// err = importer.CreateRelatedParts(vps)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-
-		err = importer.CreateStmts()
 	}
 
+	if *insertRecords {
+		err = insertApplications()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	log.Print("END ", err)
+	return
+}
+
+func deleteApplications() error {
+	var err error
+	ids, err := deleter.GetDataStructure()
+	if err != nil {
+		return err
+	}
+	vehiclePartsQuery := deleter.BuildDeleteVehiclePartsQuery(ids)
+	relatedPartsQuery := deleter.BuildDeleteRelatedPartsQuery(ids)
+	return deleter.FileOutput(vehiclePartsQuery, relatedPartsQuery)
+}
+
+func insertApplications() error {
+	var err error
+	vps, err := importer.GetDataStructure()
+	if err != nil {
+		return err
+	}
+	// log.Print(vps)
+
+	vps, err = importer.MatchYears(vps)
+	if err != nil {
+		return err
+	}
+
+	vps, err = importer.MatchMakes(vps)
+	if err != nil {
+		return err
+	}
+
+	vps, err = importer.MatchModels(vps)
+	if err != nil {
+		return err
+	}
+
+	vps, err = importer.MatchStyles(vps)
+	if err != nil {
+		return err
+	}
+
+	vps, err = importer.MatchVehicles(vps)
+	if err != nil {
+		return err
+	}
+
+	vps, err = importer.MatchVehicleParts(vps)
+	if err != nil {
+		return err
+	}
+
+	err = importer.CreateRelatedParts(vps)
+	if err != nil {
+		return err
+	}
+
+	return importer.CreateStmts()
 }
