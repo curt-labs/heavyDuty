@@ -50,7 +50,6 @@ func insertApplications() error {
 	if err != nil {
 		return err
 	}
-	// log.Print(vps)
 
 	vps, err = importer.MatchYears(vps)
 	if err != nil {
@@ -73,6 +72,11 @@ func insertApplications() error {
 	}
 
 	vps, err = importer.MatchVehicles(vps)
+	if err != nil {
+		return err
+	}
+
+	vps, err = importer.ConfirmPartExistance(vps)
 	if err != nil {
 		return err
 	}

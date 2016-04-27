@@ -119,7 +119,7 @@ func getVehiclePartMap() (map[string]int, map[string]int, error) {
 		join Style s on s.styleID = v.styleID
 		left join VehiclePart vp on vp.vehicleID = v.vehicleID
 		where ma.make in ('Chevrolet','Dodge','Ford','GMC','Nissan','Ram','Toyota')
-		and y.year > 1995`))
+		and y.year > 1979`))
 	if err != nil {
 		return vMap, vpMap, err
 	}
@@ -164,6 +164,29 @@ func getRelatedPartsMap() (map[string]int, error) {
 		}
 		key := strconv.Itoa(*p) + "|" + strconv.Itoa(*r)
 		zMap[key] = *i
+	}
+	return zMap, nil
+}
+
+func getPartMap() (map[int]int, error) {
+	zMap := make(map[int]int)
+	db, err := sql.Open("mysql", database.ConnectionString())
+	if err != nil {
+		return zMap, err
+	}
+	defer db.Close()
+
+	rows, err := db.Query(fmt.Sprintf("select partID from %s", database.PartTable))
+	if err != nil {
+		return zMap, err
+	}
+	var i *int
+	for rows.Next() {
+		err = rows.Scan(&i)
+		if err != nil {
+			return zMap, err
+		}
+		zMap[*i] = *i
 	}
 	return zMap, nil
 }

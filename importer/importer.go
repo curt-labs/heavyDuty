@@ -43,6 +43,7 @@ var (
 	vehicleMap     map[string]int
 	vehiclePartMap map[string]int
 	relatePartsMap map[string]int
+	partMap        map[int]int
 )
 
 // Init creates maps
@@ -83,7 +84,7 @@ func GetDataStructure() ([]VehiclePart, error) {
 	var counter int
 	flag.Parse()
 	if *path == "" {
-		*path = "Fifth Wheel Bracket 10.26.15.csv"
+		*path = "Gooseneck Install Kits.csv"
 	}
 	f, err := os.Open(*path)
 	if err != nil {
@@ -142,13 +143,14 @@ func GetDataStructure() ([]VehiclePart, error) {
 
 		//drilling/install time
 		vp.Drilling = "Yes"
-		if strings.ToLower(line[38]) == "no" {
+		if strings.ToLower(line[20]) == "no" {
 			vp.Drilling = "No"
 		}
-		vp.InstallTime = line[44]
-
+		vp.InstallTime = line[26]
 		//related parts
-		for j := 10; j < 29; j++ {
+		related := []int{10, 42}
+		for _, j := range related {
+			// for j := 10; j < 29; j++ {
 			if line[j] != "" {
 				partId, err := strconv.Atoi(line[j])
 				if err != nil {
@@ -157,6 +159,7 @@ func GetDataStructure() ([]VehiclePart, error) {
 				vp.RelatedParts = append(vp.RelatedParts, partId)
 			}
 		}
+
 		vps = append(vps, vp)
 		counter++
 	}
@@ -264,4 +267,21 @@ func MatchVehicleParts(vps []VehiclePart) ([]VehiclePart, error) {
 	}
 
 	return vps, err
+}
+
+func ConfirmPartExistance(vps []VehiclePart) ([]VehiclePart, error) {
+	var err error
+	if len(partMap) == 0 {
+		partMap, err = getPartMap()
+		if err != nil {
+			return vps, err
+		}
+	}
+	for _, vp := range vps {
+		var ok bool
+		if _, ok = partMap[vp.PartID]; !ok {
+			createPart(vp)
+		}
+	}
+	return vps, nil
 }

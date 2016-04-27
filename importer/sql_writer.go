@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -15,6 +16,7 @@ var (
 	newStyle       []string
 	newVehicle     []Vehicle
 	newVehiclePart []VehiclePart
+	newPart        []int
 
 	newYearStmt        string
 	newMakeStmt        string
@@ -23,6 +25,7 @@ var (
 	newVehicleStmt     string
 	newVehiclePartStmt string
 	relatedPartStmt    string
+	newPartStmt        string
 )
 
 func createYear(year float64) {
@@ -60,6 +63,12 @@ func createVehiclePart(vp VehiclePart, key string) {
 	newVehiclePart = append(newVehiclePart, vp)
 	id := rand.Int()
 	vehiclePartMap[key] = int(id)
+}
+
+func createPart(vp VehiclePart) {
+	newPart = append(newPart, vp.PartID)
+	id := time.Now().UnixNano()
+	partMap[vp.PartID] = int(id)
 }
 
 func CreateRelatedParts(vps []VehiclePart) error {
@@ -142,8 +151,23 @@ func CreateStmts() error {
 	}
 	newVehicleStmt = fmt.Sprintf("insert into Vehicle (yearID, makeID, modelID, styleID, dateAdded) values %s;", vstr)
 
+	var pstr string
+	for i, v := range newPart {
+		if v < 1 {
+			continue
+		}
+		if i > 0 {
+			pstr += ","
+		}
+		pstr += `(` + strconv.Itoa(v) + `, 800, now(), now(), 0, 0, 1)`
+	}
+	newPartStmt = fmt.Sprintf("insert into Part (partID, status, dateModified, dateAdded, classID, featured, brandID) values %s;", pstr)
+
 	var vpstr string
 	for i, v := range newVehiclePart {
+		if v.InstallTime == "" {
+			v.InstallTime = "NULL"
+		}
 		if v.Vehicle.ID == 0 || v.PartID == 0 {
 			v.toErrFile(fmt.Sprintf("error on new vehicle part"))
 			continue
@@ -219,6 +243,13 @@ func CreateStmts() error {
 	}
 	if len(newVehicle) > 0 {
 		n, err := f.WriteAt([]byte(newVehicleStmt), offset)
+		if err != nil {
+			return err
+		}
+		offset += int64(n)
+	}
+	if len(newPart) > 0 {
+		n, err := f.WriteAt([]byte(newPartStmt), offset)
 		if err != nil {
 			return err
 		}
