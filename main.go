@@ -41,7 +41,8 @@ func deleteApplications() error {
 	}
 	vehiclePartsQuery := deleter.BuildDeleteVehiclePartsQuery(ids)
 	relatedPartsQuery := deleter.BuildDeleteRelatedPartsQuery(ids)
-	return deleter.FileOutput(vehiclePartsQuery, relatedPartsQuery)
+	relatedRelatedPartsQuery := deleter.BuildDeleteRelatedRelatedPartsQuery(ids)
+	return deleter.FileOutput(vehiclePartsQuery, relatedPartsQuery, relatedRelatedPartsQuery)
 }
 
 func insertApplications() error {

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	path = flag.String("csv_path", "", "Path to csv")
+	path = flag.String("path", "", "Path to csv")
 )
 
 // Get Unique PartIDs from Csv
@@ -39,13 +39,21 @@ func GetDataStructure() ([]int, error) {
 			break //end of file
 		}
 
-		// parse part
-		partInt, err := strconv.Atoi(line[6])
-		if err != nil {
-			return ids, err
+		// // parse part
+		// partInt, err := strconv.Atoi(line[6])
+		// if err != nil {
+		// 	return ids, err
+		// }
+
+		csvPartRows := []int{7, 10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 27, 28, 29, 30}
+		for _, lineNumber := range csvPartRows {
+			partInt, err := strconv.Atoi(line[lineNumber])
+			if err != nil {
+				return ids, err
+			}
+			idMap[partInt] = partInt
 		}
 
-		idMap[partInt] = partInt
 		counter++
 	}
 	for id, _ := range idMap {
@@ -80,6 +88,20 @@ func BuildDeleteRelatedPartsQuery(ids []int) string {
 	}
 
 	query := fmt.Sprintf("delete from RelatedPart where partID in (%s)", partIdStr)
+	return query
+}
+
+// Delete RelatedParts for those partIDs
+func BuildDeleteRelatedRelatedPartsQuery(ids []int) string {
+	var partIdStr string
+	for i, id := range ids {
+		if i > 0 {
+			partIdStr += ","
+		}
+		partIdStr += strconv.Itoa(id)
+	}
+
+	query := fmt.Sprintf("delete from RelatedPart where relatedID in (%s)", partIdStr)
 	return query
 }
 

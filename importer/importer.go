@@ -84,7 +84,7 @@ func GetDataStructure() ([]VehiclePart, error) {
 	var counter int
 	flag.Parse()
 	if *path == "" {
-		*path = "Gooseneck Install Kits.csv"
+		*path = "Double Gooseneck Install Kits.csv"
 	}
 	f, err := os.Open(*path)
 	if err != nil {
@@ -103,68 +103,64 @@ func GetDataStructure() ([]VehiclePart, error) {
 		if line[0] == "" {
 			break //end of file
 		}
-
-		//parse year
-		yearFloat, err := strconv.ParseFloat(line[0], 64)
-		if err != nil {
-			return vps, err
-		}
-
-		// parse part
-		partInt, err := strconv.Atoi(line[6])
-		if err != nil {
-			return vps, err
-		}
-
-		//Base Vehicle
-		vp := VehiclePart{
-			Vehicle: Vehicle{
-				Year:  yearFloat,
-				Make:  strings.TrimSpace(line[1]),
-				Model: strings.TrimSpace(line[2]),
-				Style: strings.TrimSpace(line[3]),
-			},
-			PartID: partInt,
-		}
-
-		// Parse Model + Style
-		// modelStyle := strings.Split(line[2], " ")
-		// vp.Vehicle.Model = strings.TrimSpace(modelStyle[0])
-
-		// var styleArr []string
-		// if len(modelStyle) > 1 {
-		// 	styleArr = append(modelStyle[1:])
-		// }
-		// if len(modelStyle) == 1 || strings.ToLower(line[3]) != "all" {
-		// 	styleArr = append(styleArr, line[3])
-		// }
-		// vp.Vehicle.Style = strings.Join(styleArr, " ")
-		// vp.Vehicle.Style = strings.TrimSpace(vp.Vehicle.Style)
-
-		//drilling/install time
-		vp.Drilling = "Yes"
-		if strings.ToLower(line[20]) == "no" {
-			vp.Drilling = "No"
-		}
-		vp.InstallTime = line[26]
-		//related parts
-		related := []int{10, 42}
-		for _, j := range related {
-			// for j := 10; j < 29; j++ {
-			if line[j] != "" {
-				partId, err := strconv.Atoi(line[j])
-				if err != nil {
-					return vps, err
-				}
-				vp.RelatedParts = append(vp.RelatedParts, partId)
+		partToRelatedParts := make(map[int][]int)
+		partToRelatedParts[7] = []int{10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 29, 30}
+		partToRelatedParts[27] = []int{10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23}
+		partToRelatedParts[28] = []int{10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23}
+		for partIdCell, relatedPartCells := range partToRelatedParts {
+			vp, err := parseVehiclePart(partIdCell, relatedPartCells, line)
+			if err != nil {
+				return vps, err
 			}
+			vps = append(vps, vp)
 		}
 
-		vps = append(vps, vp)
 		counter++
 	}
 	fmt.Println(counter, " vehicleParts examined")
 	return vps, err
+}
+
+func parseVehiclePart(partIdCell int, relatedPartCells []int, line []string) (VehiclePart, error) {
+	var err error
+	//Base Vehicle
+	vp := VehiclePart{
+		Vehicle: Vehicle{
+			Make:  strings.TrimSpace(line[1]),
+			Model: strings.TrimSpace(line[2]),
+			Style: strings.TrimSpace(line[3]),
+		},
+	}
+
+	//parse year
+	vp.Vehicle.Year, err = strconv.ParseFloat(line[0], 64)
+	if err != nil {
+		return vp, err
+	}
+
+	// parse part
+	vp.PartID, err = strconv.Atoi(line[partIdCell])
+	if err != nil {
+		return vp, err
+	}
+
+	//drilling/install time
+	vp.Drilling = "Yes"
+	if strings.ToLower(line[40]) == "no" {
+		vp.Drilling = "No"
+	}
+	vp.InstallTime = line[46]
+	//related parts
+	for _, j := range relatedPartCells {
+		if line[j] != "" && strings.ToLower(line[j]) != "n/a" {
+			partId, err := strconv.Atoi(line[j])
+			if err != nil {
+				return vp, err
+			}
+			vp.RelatedParts = append(vp.RelatedParts, partId)
+		}
+	}
+	return vp, nil
 }
 
 func MatchYears(vps []VehiclePart) ([]VehiclePart, error) {
