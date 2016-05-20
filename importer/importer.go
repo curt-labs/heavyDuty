@@ -2,7 +2,6 @@ package importer
 
 import (
 	"encoding/csv"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -35,7 +34,6 @@ type VehiclePart struct {
 }
 
 var (
-	path           = flag.String("path", "", "Path to csv")
 	yearMap        map[float64]int
 	makeMap        map[string]int
 	modelMap       map[string]int
@@ -78,15 +76,14 @@ func Init() {
 }
 
 // Get - reading csv and return Vehicleparts
-func GetDataStructure() ([]VehiclePart, error) {
+func GetDataStructure(path string) ([]VehiclePart, error) {
 	// Init() //init maps
 	var vps []VehiclePart
 	var counter int
-	flag.Parse()
-	if *path == "" {
-		*path = "Double Gooseneck Install Kits.csv"
+	if path == "" {
+		path = "Double Gooseneck Install Kits.csv"
 	}
-	f, err := os.Open(*path)
+	f, err := os.Open(path)
 	if err != nil {
 		return vps, err
 	}

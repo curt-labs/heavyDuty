@@ -2,26 +2,20 @@ package deleter
 
 import (
 	"encoding/csv"
-	"flag"
 	"fmt"
 	"os"
 	"strconv"
 )
 
-var (
-	path = flag.String("path", "", "Path to csv")
-)
-
 // Get Unique PartIDs from Csv
-func GetDataStructure() ([]int, error) {
+func GetDataStructure(path string) ([]int, error) {
 	var ids []int
 	idMap := make(map[int]int)
 	var counter int
-	flag.Parse()
-	if *path == "" {
-		*path = "Fifth Wheel Bracket 10.26.15.csv"
+	if path == "" {
+		path = "Fifth Wheel Bracket 10.26.15.csv"
 	}
-	f, err := os.Open(*path)
+	f, err := os.Open(path)
 	if err != nil {
 		return ids, err
 	}

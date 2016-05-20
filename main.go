@@ -11,6 +11,7 @@ import (
 var (
 	deleteRecords = flag.Bool("delete", false, "Do Delete Part Applications")
 	insertRecords = flag.Bool("insert", false, "Do Insert Part Applications")
+	path          = flag.String("path", "", "Path to csv")
 )
 
 func main() {
@@ -35,7 +36,7 @@ func main() {
 
 func deleteApplications() error {
 	var err error
-	ids, err := deleter.GetDataStructure()
+	ids, err := deleter.GetDataStructure(*path)
 	if err != nil {
 		return err
 	}
@@ -47,7 +48,7 @@ func deleteApplications() error {
 
 func insertApplications() error {
 	var err error
-	vps, err := importer.GetDataStructure()
+	vps, err := importer.GetDataStructure(*path)
 	if err != nil {
 		return err
 	}
