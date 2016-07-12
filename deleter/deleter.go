@@ -13,7 +13,7 @@ func GetDataStructure(path string) ([]int, error) {
 	idMap := make(map[int]int)
 	var counter int
 	if path == "" {
-		path = "Fifth Wheel Bracket 10.26.15.csv"
+		path = "Fifth Wheel Bracket 10.26.15 Colored.csv"
 	}
 	f, err := os.Open(path)
 	if err != nil {
